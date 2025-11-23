@@ -3,6 +3,8 @@ import pyautogui
 import time
 import subprocess
 import platform
+import json
+import os
 from discord.ext import commands
 from discord import app_commands
 import discord
@@ -14,6 +16,30 @@ class RobloxGameAutomation(commands.Cog):
         self.server_url = config.SERVER_URL
         self.auth_token = config.AUTH_TOKEN
         self.is_automating = False
+        self.coordinates = self.load_coordinates()
+
+    def load_coordinates(self):
+        """Load coordinates from JSON file"""
+        coord_file = "studio_coordinates.json"
+        try:
+            if os.path.exists(coord_file):
+                with open(coord_file, 'r') as f:
+                    return json.load(f)
+            else:
+                print(f"⚠️  Warning: {coord_file} not found. Using default coordinates.")
+                print(f"   Run 'python find_coordinates.py' to calibrate.")
+                return {"roblox_studio": {}}
+        except Exception as e:
+            print(f"Error loading coordinates: {e}")
+            return {"roblox_studio": {}}
+
+    def get_coord(self, element_name):
+        """Get coordinates for a specific element"""
+        try:
+            coord = self.coordinates["roblox_studio"].get(element_name, {})
+            return coord.get("x"), coord.get("y")
+        except:
+            return None, None
 
     def get_headers(self):
         return {
@@ -63,17 +89,28 @@ class RobloxGameAutomation(commands.Cog):
     def create_new_place(self):
         """Automate creating a new place in Roblox Studio"""
         try:
-            # Click on "New" button (adjust coordinates based on your screen)
-            # These are placeholder coordinates - you'll need to adjust them
-            pyautogui.click(100, 100)
+            # Get coordinates from config
+            new_x, new_y = self.get_coord("new_button")
+            baseplate_x, baseplate_y = self.get_coord("baseplate_template")
+            create_x, create_y = self.get_coord("create_button")
+
+            if not all([new_x, new_y, baseplate_x, baseplate_y, create_x, create_y]):
+                print("❌ Missing coordinates! Please calibrate using find_coordinates.py")
+                return False
+
+            # Click on "New" button
+            print(f"Clicking New button at ({new_x}, {new_y})")
+            pyautogui.click(new_x, new_y)
             time.sleep(2)
 
             # Select "Baseplate" template
-            pyautogui.click(300, 300)
+            print(f"Selecting Baseplate at ({baseplate_x}, {baseplate_y})")
+            pyautogui.click(baseplate_x, baseplate_y)
             time.sleep(2)
 
             # Click "Create"
-            pyautogui.click(500, 500)
+            print(f"Clicking Create at ({create_x}, {create_y})")
+            pyautogui.click(create_x, create_y)
             time.sleep(10)  # Wait for place to load
 
             return True
@@ -84,26 +121,52 @@ class RobloxGameAutomation(commands.Cog):
     def publish_to_roblox(self, game_name="Sparkling Silver"):
         """Automate publishing the game to Roblox"""
         try:
-            # Open File menu (Alt+F on Windows, Cmd+F on Mac)
-            if platform.system() == "Windows":
-                pyautogui.hotkey('alt', 'f')
+            # Get coordinates
+            file_x, file_y = self.get_coord("file_menu")
+            publish_x, publish_y = self.get_coord("publish_menu")
+            name_field_x, name_field_y = self.get_coord("game_name_field")
+            publish_btn_x, publish_btn_y = self.get_coord("publish_button")
+
+            # Method 1: Try using coordinates
+            if all([file_x, file_y, publish_x, publish_y]):
+                print(f"Clicking File menu at ({file_x}, {file_y})")
+                pyautogui.click(file_x, file_y)
+                time.sleep(1)
+
+                print(f"Clicking Publish to Roblox at ({publish_x}, {publish_y})")
+                pyautogui.click(publish_x, publish_y)
+                time.sleep(3)
             else:
-                pyautogui.hotkey('command', 'f')
+                # Method 2: Fallback to keyboard navigation
+                print("Using keyboard navigation (coordinates not set)")
+                if platform.system() == "Windows":
+                    pyautogui.hotkey('alt', 'f')
+                else:
+                    pyautogui.hotkey('command', 'f')
 
-            time.sleep(1)
-
-            # Navigate to "Publish to Roblox"
-            pyautogui.press('down', presses=5)
-            pyautogui.press('enter')
-            time.sleep(3)
+                time.sleep(1)
+                pyautogui.press('down', presses=5)
+                pyautogui.press('enter')
+                time.sleep(3)
 
             # Enter game name
-            pyautogui.write(game_name)
+            if name_field_x and name_field_y:
+                print(f"Clicking name field at ({name_field_x}, {name_field_y})")
+                pyautogui.click(name_field_x, name_field_y)
+                time.sleep(1)
+
+            pyautogui.write(game_name, interval=0.1)
             time.sleep(1)
 
-            # Click "Create" or "Publish" button
-            pyautogui.press('tab', presses=3)
-            pyautogui.press('enter')
+            # Click publish button
+            if publish_btn_x and publish_btn_y:
+                print(f"Clicking Publish button at ({publish_btn_x}, {publish_btn_y})")
+                pyautogui.click(publish_btn_x, publish_btn_y)
+            else:
+                print("Using Tab navigation for Publish button")
+                pyautogui.press('tab', presses=3)
+                pyautogui.press('enter')
+
             time.sleep(5)
 
             return True

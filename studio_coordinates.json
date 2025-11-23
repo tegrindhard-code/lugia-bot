@@ -1,0 +1,45 @@
+{
+  "screen_resolution": {
+    "width": 1920,
+    "height": 1080,
+    "comment": "Update with your screen resolution"
+  },
+  "roblox_studio": {
+    "file_menu": {
+      "x": 50,
+      "y": 30,
+      "comment": "File menu in top menu bar"
+    },
+    "new_button": {
+      "x": 100,
+      "y": 100,
+      "comment": "New option in File menu"
+    },
+    "baseplate_template": {
+      "x": 300,
+      "y": 300,
+      "comment": "Baseplate template icon"
+    },
+    "create_button": {
+      "x": 500,
+      "y": 500,
+      "comment": "Create button in template window"
+    },
+    "publish_menu": {
+      "x": 150,
+      "y": 150,
+      "comment": "Publish to Roblox in File menu"
+    },
+    "game_name_field": {
+      "x": 400,
+      "y": 300,
+      "comment": "Game name input field"
+    },
+    "publish_button": {
+      "x": 600,
+      "y": 500,
+      "comment": "Final publish button"
+    }
+  },
+  "instructions": "Run 'python find_coordinates.py' to find your coordinates, then update this file"
+}
