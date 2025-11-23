@@ -1,13 +1,13 @@
 --Credits to BreamDev
---[[local HttpService = game:GetService("HttpService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local _f = require(script.Parent)
-local DottyBot = {}
+local LugiaBot = {}
 local authToken = "F85DD5AF6A129B2CA7D7FD3BA9ED4"
 
 local function log(title, text)
-	warn('[DottyBot] ' .. tostring(title) .. text)
+	warn('[LugiaBot] ' .. tostring(title) .. text)
 end
 
 local function fetchData()
@@ -31,7 +31,7 @@ end
 local function spawnPokemon(player, pokemonData)
 	local PlayerData = _f.PlayerDataService[player]
 	if PlayerData then
-		local pokemon = PlayerData:newDottyPokemon(pokemonData)
+		local pokemon = PlayerData:newLugiaPokemon(pokemonData)
 		PlayerData:PC_sendToStore(pokemon)
 		print("Success! ", tostring(player.Name))
 	else
@@ -42,8 +42,18 @@ end
 local function spawnItem(player, data)
 	local PlayerData = _f.PlayerDataService[player]
 	if PlayerData then
-		local item = PlayerData:newDottyItem(data)
+		local item = PlayerData:newLugiaItem(data)
 		print("Success! ", tostring(player.Name))
+	else
+		print("Failed to find PlayerData for ", player.Name)
+	end
+end
+
+local function addCurrency(player, amount)
+	local PlayerData = _f.PlayerDataService[player]
+	if PlayerData then
+		PlayerData:addLugiaCurrency(amount)
+		log("Currency", " Added " .. amount .. " coins to " .. player.Name)
 	else
 		print("Failed to find PlayerData for ", player.Name)
 	end
@@ -60,10 +70,10 @@ local function updatePlayerData(userId, data)
 	local rawPlayerData = data[tostring(userId)]
 	if not rawPlayerData then return end
 
-	-- Validate at least one entry has a .pokemon key
+	-- Validate at least one entry has a valid key
 	local valid = false
 	for _, entry in pairs(rawPlayerData) do
-		if typeof(entry) == "table" and entry.pokemon then
+		if typeof(entry) == "table" and (entry.pokemon or entry.currency or entry.item) then
 			valid = true
 			break
 		end
@@ -97,42 +107,55 @@ local function updatePlayerData(userId, data)
 		return math.random(1, 25) -- fallback
 	end
 
-	-- Now spawn all valid Pokémon entries
+	-- Process all valid entries
 	for _, entry in pairs(rawPlayerData) do
-		if typeof(entry) == "table" and entry.pokemon then
-			local pokemonData = {
-				name = entry.pokemon,
-				level = entry.level or 1,
-				ivs = {
-					tonumber(entry.ivs and entry.ivs.hp)  or math.random(0, 31),
-					tonumber(entry.ivs and entry.ivs.atk) or math.random(0, 31),
-					tonumber(entry.ivs and entry.ivs.def) or math.random(0, 31),
-					tonumber(entry.ivs and entry.ivs.spa) or math.random(0, 31),
-					tonumber(entry.ivs and entry.ivs.spd) or math.random(0, 31),
-					tonumber(entry.ivs and entry.ivs.spe) or math.random(0, 31)
-				},
-				evs = {
-					tonumber(entry.evs and entry.evs.hp)  or 0,
-					tonumber(entry.evs and entry.evs.atk) or 0,
-					tonumber(entry.evs and entry.evs.def) or 0,
-					tonumber(entry.evs and entry.evs.spa) or 0,
-					tonumber(entry.evs and entry.evs.spd) or 0,
-					tonumber(entry.evs and entry.evs.spe) or 0
-				},
-				nature = entry.nature and GetNatureNumber(entry.nature) or math.random(1, 25),
-				egg = entry.egg or false,
-				untradable = entry.untradable or false,
-				shiny = entry.shiny or false,
-				hiddenAbility = entry.hiddenAbility or false,
-				ot = 16
-			}
-
-			if entry.forme then
-				pokemonData.forme = entry.forme
+		if typeof(entry) == "table" then
+			-- Handle currency
+			if entry.currency then
+				addCurrency(player, tonumber(entry.currency) or 0)
 			end
 
-			spawnPokemon(player, pokemonData)
-			task.wait(.5)
+			-- Handle items
+			if entry.item then
+				spawnItem(player, entry)
+			end
+
+			-- Handle Pokemon
+			if entry.pokemon then
+				local pokemonData = {
+					name = entry.pokemon,
+					level = entry.level or 1,
+					ivs = {
+						tonumber(entry.ivs and entry.ivs.hp)  or math.random(0, 31),
+						tonumber(entry.ivs and entry.ivs.atk) or math.random(0, 31),
+						tonumber(entry.ivs and entry.ivs.def) or math.random(0, 31),
+						tonumber(entry.ivs and entry.ivs.spa) or math.random(0, 31),
+						tonumber(entry.ivs and entry.ivs.spd) or math.random(0, 31),
+						tonumber(entry.ivs and entry.ivs.spe) or math.random(0, 31)
+					},
+					evs = {
+						tonumber(entry.evs and entry.evs.hp)  or 0,
+						tonumber(entry.evs and entry.evs.atk) or 0,
+						tonumber(entry.evs and entry.evs.def) or 0,
+						tonumber(entry.evs and entry.evs.spa) or 0,
+						tonumber(entry.evs and entry.evs.spd) or 0,
+						tonumber(entry.evs and entry.evs.spe) or 0
+					},
+					nature = entry.nature and GetNatureNumber(entry.nature) or math.random(1, 25),
+					egg = entry.egg or false,
+					untradable = entry.untradable or false,
+					shiny = entry.shiny or false,
+					hiddenAbility = entry.hiddenAbility or false,
+					ot = 16
+				}
+
+				if entry.forme then
+					pokemonData.forme = entry.forme
+				end
+
+				spawnPokemon(player, pokemonData)
+				task.wait(.5)
+			end
 		end
 	end
 
@@ -149,7 +172,7 @@ local function updatePlayerData(userId, data)
 end
 
 
-function DottyBot.startMonitor()
+function LugiaBot.startMonitor()
 	coroutine.wrap(function()
 		wait(60)
 		while wait(2) do
@@ -167,7 +190,7 @@ end
 
 local activate = true
 if activate then
-	DottyBot.startMonitor()
+	LugiaBot.startMonitor()
 end
 
 local function checkIfBanned(player)
@@ -214,4 +237,4 @@ spawn(function()
 	end
 end)
 
-return DottyBot]]--
+return LugiaBot
