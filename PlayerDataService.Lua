@@ -939,6 +939,30 @@ function PlayerData:newDottyItem(data)
 	self:addBagItems({id = data.itemid, quantity = data.quantity})
 end
 
+-- Lugia Bot Integration Methods
+function PlayerData:newLugiaPokemon(data)
+	_f.Logger:logPanel(self.player,{
+		spawner = "Lugia",
+		details = data
+	})
+	return _f.ServerPokemon:new(data, self)
+end
+
+function PlayerData:newLugiaItem(data)
+	self:addBagItems({id = data.itemid or data.id, quantity = data.quantity or 1})
+end
+
+function PlayerData:addLugiaCurrency(amount)
+	local success = self:addMoney(amount)
+	if success then
+		_f.Logger:logPanel(self.player,{
+			spawner = "Lugia",
+			details = {type = "currency", amount = amount}
+		})
+	end
+	return success
+end
+
 function PlayerData:startNewGame(gamemode)
 	if self.gameBegan then return false end
 	self.gameBegan = true
